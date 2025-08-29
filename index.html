@@ -1,161 +1,263 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Raspadita Especial 🎁</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Raspadita de Bienvenida 🎁</title>
+  <meta name="description" content="Raspa y descubre tu cupón de bienvenida: 50% extra en tu primera carga. Válido 24 horas." />
   <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background: linear-gradient(135deg, #ff9a9e, #fad0c4);
-      font-family: 'Arial', sans-serif;
-      text-align: center;
+    :root{
+      --bg1:#f8f9ff; --bg2:#eef2ff; --primary:#111827; --accent:#6366f1; --ok:#16a34a; --muted:#6b7280;
+      --card:#ffffff; --shadow:0 10px 30px rgba(0,0,0,.12);
+      --radius:22px;
     }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(1200px 600px at 10% 10%, var(--bg2), transparent),
+                  radial-gradient(1200px 600px at 90% 90%, #ffe8ef, transparent),
+                  var(--bg1);
+      color:var(--primary);
     }
-    header img {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
+    .wrap{
+      width:min(92vw, 560px);
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:22px;
     }
-    header h1 {
-      font-size: 20px;
-      margin: 0;
-      color: #333;
+    header{
+      display:flex; align-items:center; gap:12px; margin-bottom:14px;
     }
-    #scratchCanvas {
-      border-radius: 20px;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.3);
-      cursor: pointer;
+    .logo{
+      width:50px; height:50px; border-radius:12px; background:#fff;
+      box-shadow:0 4px 12px rgba(0,0,0,.08); display:grid; place-items:center; overflow:hidden;
+      flex:0 0 auto;
     }
-    .mensaje {
-      font-size: 22px;
-      font-weight: bold;
-      margin: 15px 0;
-      color: #333;
-      text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+    .logo img{ width:100%; height:100%; object-fit:cover; }
+    .ttl{ line-height:1.1; }
+    .ttl h1{ font-size:20px; margin:0 0 4px; }
+    .ttl p{ margin:0; color:var(--muted); font-size:14px; }
+
+    .card{
+      position:relative; border-radius:var(--radius);
+      overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,.12);
     }
-    .footer {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #444;
+    canvas{ display:block; width:100%; height:auto; cursor:pointer; }
+    .badge{
+      position:absolute; top:10px; right:10px; background:var(--accent); color:#fff;
+      padding:6px 10px; border-radius:999px; font-size:12px; box-shadow:0 4px 10px rgba(99,102,241,.4);
     }
-    #claimBtn {
-      display: none;
-      margin-top: 20px;
-      padding: 12px 20px;
-      font-size: 18px;
-      font-weight: bold;
-      color: white;
-      background: #28a745;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    .cta{
+      display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:16px; text-align:center;
     }
-    #claimBtn:hover {
-      background: #218838;
+    .btn{
+      appearance:none; border:0; background:var(--ok); color:#fff; font-weight:700;
+      padding:14px 18px; border-radius:16px; box-shadow:0 6px 16px rgba(22,163,74,.35);
+      cursor:pointer; width:100%; font-size:16px; transition:transform .06s ease;
     }
+    .btn:disabled{ background:#a3a3a3; box-shadow:none; cursor:not-allowed; }
+    .btn:active{ transform:translateY(1px); }
+    .meta{
+      font-size:13px; color:var(--muted);
+    }
+    details{
+      margin-top:10px; background:#f6f7ff; border-radius:14px; padding:10px 12px;
+    }
+    details summary{ cursor:pointer; font-weight:600; }
+    .ribbon{
+      position:absolute; left:10px; top:10px; padding:6px 10px; font-size:12px; background:#111827; color:#fff; border-radius:999px;
+    }
+    .expiredOverlay{
+      position:absolute; inset:0; background:rgba(17,24,39,.72); color:#fff;
+      display:none; align-items:center; justify-content:center; text-align:center; padding:20px;
+    }
+    .expiredOverlay.show{ display:flex; }
+    .timer{
+      display:inline-flex; gap:6px; align-items:center; font-feature-settings:"tnum";
+      font-variant-numeric:tabular-nums;
+    }
+    .grid2{
+      display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center;
+    }
+    .extra-lines{
+      margin-top:12px; text-align:left; font-size:13px; color:var(--muted);
+    }
+    .extra-lines p{ margin:4px 0; }
   </style>
 </head>
 <body>
-  <header>
-    <img src="logo.png" alt="Logo">
-    <h1>Promo Especial</h1>
-  </header>
+  <div class="wrap" role="main">
+    <header>
+      <div class="logo">
+        <img id="brandLogo" alt="Logo" src="logo.png" />
+      </div>
+      <div class="ttl">
+        <h1>Raspadita de Bienvenida</h1>
+        <p>Descubre tu cupón exclusivo.</p>
+      </div>
+    </header>
 
-  <div class="mensaje">🎯 ¡Raspa y descubre tu cupón especial!</div>
-  <canvas id="scratchCanvas" width="350" height="250"></canvas>
-  <div class="footer">⚡ Válido solo por 24 horas</div>
-  <button id="claimBtn">📲 Reclamar Cupón</button>
+    <div class="card">
+      <div class="ribbon">50% EXTRA</div>
+      <div class="badge" id="timeBadge">
+        <span class="timer">⏳ <span id="countdown">—:—:—</span></span>
+      </div>
+      <canvas id="scratch" width="520" height="300"></canvas>
+      <div class="expiredOverlay" id="expired">
+        <div>
+          <h2 style="margin:0 0 6px">Cupón expirado</h2>
+          <p style="margin:0; opacity:.9">Vuelve a solicitar una nueva invitación.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta">
+      <div class="grid2" style="width:100%">
+        <button id="claimBtn" class="btn" disabled>🎁 Reclamar cupón 50% extra</button>
+        <div class="meta" id="progressTxt">Raspa para desbloquear (0%)</div>
+      </div>
+      <div class="meta">Válido solo por 24 horas desde tu primera visita.</div>
+      <details>
+        <summary>Ver términos</summary>
+        <div class="meta" style="margin-top:8px; text-align:left">
+          Promoción: 50% extra en la primera carga de bienvenida. Válido por 24 horas desde la primera visita a esta página en tu dispositivo.
+          Beneficio no acumulable ni transferible. Sujeto a verificación de cuenta. Nos reservamos el derecho de validar elegibilidad.
+        </div>
+      </details>
+    </div>
+
+    <!-- Ocho líneas adicionales debajo -->
+    <div class="extra-lines">
+      <p>1. Beneficio exclusivo para nuevos usuarios.</p>
+      <p>2. No acumulable con otras promociones.</p>
+      <p>3. Válido solo en la primera carga.</p>
+      <p>4. Vigencia limitada a 24 horas.</p>
+      <p>5. Cupón personal e intransferible.</p>
+      <p>6. Sujeto a verificación de identidad.</p>
+      <p>7. Promoción válida hasta agotar stock.</p>
+      <p>8. La empresa se reserva el derecho de modificar condiciones.</p>
+    </div>
+  </div>
 
   <script>
-    const canvas = document.getElementById("scratchCanvas");
+    const BRAND_NAME = "Tu Marca";
+    const VALIDITY_HOURS = 24;
+    const SCRATCH_RADIUS = 26;
+    const UNLOCK_THRESHOLD = 0.55;
+
+    const canvas = document.getElementById("scratch");
     const ctx = canvas.getContext("2d");
     const claimBtn = document.getElementById("claimBtn");
+    const progressTxt = document.getElementById("progressTxt");
+    const countdownEl = document.getElementById("countdown");
+    const expiredEl = document.getElementById("expired");
 
-    // 👉 Imagen del premio (ya usará tu archivo local premio.png)
-    const prize = new Image();
-    prize.src = "premio.png";
-    prize.onload = () => {
-      ctx.drawImage(prize, 0, 0, canvas.width, canvas.height);
+    let isDown = false;
+    let lastPoint = null;
+    let revealed = false;
 
-      // Capa gris metálica
-      ctx.fillStyle = "silver";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    };
+    // Dibuja la imagen del cupón
+    function drawPrizeBackground() {
+      const img = new Image();
+      img.src = "cupon.png";
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+    }
 
-    let isDrawing = false;
+    function drawScratchLayer(){
+      const w = canvas.width, h = canvas.height;
+      const g = ctx.createLinearGradient(0,0,w,h);
+      g.addColorStop(0, "#cfd4da");
+      g.addColorStop(1, "#a9b0b7");
+      ctx.fillStyle = g;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillRect(0,0,w,h);
 
-    function scratch(e) {
-      if (!isDrawing) return;
+      ctx.fillStyle = "rgba(17,24,39,.9)";
+      ctx.font = "bold 20px system-ui, Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Raspa para revelar tu cupón", w/2, 40);
+      ctx.textAlign = "left";
+    }
+
+    function scratchAt(clientX, clientY){
       const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-      const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+      const x = (clientX - rect.left) * (canvas.width / rect.width);
+      const y = (clientY - rect.top) * (canvas.height / rect.height);
       ctx.globalCompositeOperation = "destination-out";
       ctx.beginPath();
-      ctx.arc(x, y, 25, 0, Math.PI * 2);
+      ctx.arc(x, y, SCRATCH_RADIUS, 0, Math.PI*2);
       ctx.fill();
-
-      // Revisar si ya raspó suficiente (30%)
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let cleared = 0;
-      for (let i = 3; i < imageData.data.length; i += 4) {
-        if (imageData.data[i] === 0) cleared++;
+      if(lastPoint){
+        const dx = x - lastPoint.x, dy = y - lastPoint.y;
+        const dist = Math.hypot(dx, dy);
+        const steps = Math.ceil(dist / (SCRATCH_RADIUS/2));
+        for(let i=1;i<steps;i++){
+          const ix = lastPoint.x + dx * (i/steps);
+          const iy = lastPoint.y + dy * (i/steps);
+          ctx.beginPath(); ctx.arc(ix, iy, SCRATCH_RADIUS, 0, Math.PI*2); ctx.fill();
+        }
       }
-      if (cleared / (canvas.width * canvas.height) > 0.3) {
-        claimBtn.style.display = "inline-block";
-      }
+      lastPoint = {x,y};
     }
 
-    // Eventos mouse
-    canvas.addEventListener("mousedown", () => isDrawing = true);
-    canvas.addEventListener("mouseup", () => isDrawing = false);
-    canvas.addEventListener("mousemove", scratch);
-
-    // Eventos touch
-    canvas.addEventListener("touchstart", () => isDrawing = true);
-    canvas.addEventListener("touchend", () => isDrawing = false);
-    canvas.addEventListener("touchmove", scratch);
-
-    // 👉 Lista de números de WhatsApp
-    const WHATSAPP_NUMBERS = [
-      "5491131173310",
-      "5491131173484",
-      "5491131173032",
-      "5491131173532",
-      "5491131173034",
-      "5491131173049",
-      "5491777777777",
-      "5491888888888"
-    ];
-    const STORAGE_KEY_NUM = "raspadita_linea";
-
-    function getAssignedNumber() {
-      let n = localStorage.getItem(STORAGE_KEY_NUM);
-      if (!n) {
-        n = WHATSAPP_NUMBERS[Math.floor(Math.random() * WHATSAPP_NUMBERS.length)];
-        localStorage.setItem(STORAGE_KEY_NUM, n);
-      }
-      return n;
+    function updateRevealedPercent(){
+      try{
+        const sample = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+        let cleared = 0, sampled = 0;
+        for(let i=3;i<sample.length;i+=32){
+          if(sample[i]===0) cleared++;
+          sampled++;
+        }
+        const ratio = cleared / sampled;
+        const percent = Math.round(ratio*100);
+        progressTxt.textContent = revealed ? "Listo para reclamar" : `Raspa para desbloquear (${percent}%)`;
+        if(!revealed && ratio >= UNLOCK_THRESHOLD){
+          revealed = true;
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.fillRect(0,0,canvas.width,canvas.height);
+          claimBtn.disabled = false;
+          progressTxt.textContent = "Listo para reclamar";
+        }
+      }catch(err){}
     }
 
-    // 👉 Mensaje de bienvenida
-    const WHATSAPP_MESSAGE = "¡Hola! 🎉 Quiero reclamar mi cupón del 50% extra en la primera carga.";
+    function handlePointerDown(){ if(!checkExpired()){ isDown = true; lastPoint = null; } }
+    function handlePointerUp(){ isDown = false; lastPoint = null; updateRevealedPercent(); }
+    function handlePointerMove(e){
+      if(!isDown || checkExpired()) return;
+      if(e.touches && e.touches[0]){
+        scratchAt(e.touches[0].clientX, e.touches[0].clientY);
+      } else {
+        scratchAt(e.clientX, e.clientY);
+      }
+      e.preventDefault();
+    }
 
-    // Acción al reclamar
-    claimBtn.addEventListener("click", () => {
-      const msg = encodeURIComponent(WHATSAPP_MESSAGE);
-      window.location.href = `https://wa.me/${getAssignedNumber()}?text=${msg}`;
-    });
+    canvas.addEventListener("mousedown", handlePointerDown);
+    canvas.addEventListener("mousemove", handlePointerMove, {passive:false});
+    window.addEventListener("mouseup", handlePointerUp);
+    canvas.addEventListener("touchstart", handlePointerDown, {passive:true});
+    canvas.addEventListener("touchmove", handlePointerMove, {passive:false});
+    window.addEventListener("touchend", handlePointerUp);
+
+    // Expiración
+    const STORAGE_KEY = "scratch_welcome_started_at";
+    function getStartMs(){ const v = localStorage.getItem(STORAGE_KEY); return v ? parseInt(v,10) : null; }
+    function startNowIfNeeded(){ let start = getStartMs(); if(!start){ start = Date.now(); localStorage.setItem(STORAGE_KEY, String(start)); } return start; }
+    function msLeft(){ const start = startNowIfNeeded(); const end = start + VALIDITY_HOURS*60*60*1000; return end - Date.now(); }
+    function checkExpired(){ const expired = msLeft()<=0; expiredEl.classList.toggle("show", expired); claimBtn.disabled = expired || !revealed; return expired; }
+    function formatHHMMSS(ms){ if(ms<=0) return "00:00:00"; const t = Math.floor(ms/1000); const h = String(Math.floor(t/3600)).padStart(2,"0"); const m = String(Math.floor((t%3600)/60)).padStart(2,"0"); const s = String(t%60).padStart(2,"0"); return `${h}:${m}:${s}`; }
+    function tick(){ countdownEl.textContent = formatHHMMSS(msLeft()); checkExpired(); }
+    setInterval(tick, 1000);
+
+    claimBtn.addEventListener("click", () => { alert("Cupón reclamado ✅"); });
+
+    function init(){ drawPrizeBackground(); drawScratchLayer(); tick(); }
+    window.addEventListener("load", init);
   </script>
 </body>
 </html>
