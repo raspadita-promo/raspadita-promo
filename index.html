@@ -42,9 +42,8 @@
 
     .card{
       position:relative; border-radius:var(--radius);
-      overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,.12);
-      /* altura consistente en todas las pantallas */
-      aspect-ratio: 26 / 15; /* ~520x300 */
+      overflow:hidden; box-shadow:var(--shadow);
+      aspect-ratio: 26 / 15; 
       background:#fff;
     }
     .coupon-img{
@@ -102,15 +101,13 @@
     </header>
 
     <div class="card">
-      <div class="ribbon">50% EXTRA</div>
+      <div class="ribbon">CARGA EXTRA</div>
       <div class="badge" id="timeBadge">
         <span class="timer">⏳ <span id="countdown">—:—:—</span></span>
       </div>
 
-      <!-- Fondo del premio como imagen real -->
       <img id="couponImg" class="coupon-img" src="./cupon.png" alt="Cupón" loading="eager" />
 
-      <!-- Capa rascable encima -->
       <canvas id="scratch" class="scratch" aria-label="Raspadita: arrastra para revelar premio"></canvas>
 
       <div class="expiredOverlay" id="expired">
@@ -123,7 +120,7 @@
 
     <div class="cta">
       <div class="grid2" style="width:100%">
-        <button id="claimBtn" class="btn" disabled>🎁 Reclamar cupón 50% extra</button>
+        <button id="claimBtn" class="btn" disabled>🎁 Reclamar cupón</button>
         <div class="meta" id="progressTxt">Raspa para desbloquear (0%)</div>
       </div>
       <div class="meta">Válido solo por 24 horas desde tu primera visita.</div>
@@ -136,7 +133,6 @@
       </details>
     </div>
 
-    <!-- 8 líneas editables -->
     <div class="extra-lines">
       <p>1. Beneficio exclusivo para nuevos usuarios.</p>
       <p>2. No acumulable con otras promociones.</p>
@@ -158,49 +154,48 @@
     const SCRATCH_RADIUS = 26;
     const UNLOCK_THRESHOLD = 0.55;
 
+    // 👉 Aquí defines tus 8 números de WhatsApp (en formato internacional, sin + ni espacios)
+    const WHATSAPP_NUMBERS = [
+      "5491131173310",
+      "5491131173484",
+      "5491131173032",
+      "5491131173532",
+      "5491131173034",
+      "5491131173049",
+      "5491777777777",
+      "5491888888888"
+    ];
+
     const canvas = document.getElementById("scratch");
     const ctx = canvas.getContext("2d");
     const claimBtn = document.getElementById("claimBtn");
     const progressTxt = document.getElementById("progressTxt");
     const countdownEl = document.getElementById("countdown");
     const expiredEl = document.getElementById("expired");
-    const prizeImg = document.getElementById("couponImg");
 
     let isDown = false, lastPoint = null, revealed = false;
 
-    /***********************
-     * LAYOUT NÍTIDO (HiDPI)
-     ***********************/
     function sizeCanvas(){
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
       canvas.width  = Math.round(rect.width * dpr);
       canvas.height = Math.round(rect.height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // dibujar en unidades CSS
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    /***********************
-     * CAPA RASCABLE (sólo en el canvas superior)
-     ***********************/
     function drawScratchLayer(){
       const rect = canvas.getBoundingClientRect();
       const w = rect.width, h = rect.height;
-
-      // fondo metálico
       const g = ctx.createLinearGradient(0,0,w,h);
       g.addColorStop(0, "#cfd4da");
       g.addColorStop(1, "#a9b0b7");
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = g;
       ctx.fillRect(0,0,w,h);
-
-      // líneas finas
       ctx.globalAlpha = 0.25;
       ctx.fillStyle = "rgba(255,255,255,0.3)";
       for(let i=0;i<w;i+=8){ ctx.fillRect(i,0,1,h); }
       ctx.globalAlpha = 1;
-
-      // texto
       ctx.fillStyle = "rgba(17,24,39,.9)";
       ctx.font = "bold 20px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.textAlign = "center";
@@ -247,7 +242,7 @@
           claimBtn.disabled = false;
           progressTxt.textContent = "Listo para reclamar";
         }
-      }catch(e){ /* no rompemos la UX */ }
+      }catch(e){}
     }
 
     function handlePointerDown(){ if(!checkExpired()){ isDown = true; lastPoint = null; } }
@@ -275,15 +270,18 @@
     function msLeft(){ const end = startNowIfNeeded() + VALIDITY_HOURS*60*60*1000; return end - Date.now(); }
     function checkExpired(){ const expired = msLeft()<=0; expiredEl.classList.toggle("show", expired); claimBtn.disabled = expired || !revealed; return expired; }
     function hhmmss(ms){ if(ms<=0) return "00:00:00"; const t=Math.floor(ms/1000),h=String(Math.floor(t/3600)).padStart(2,"0"),m=String(Math.floor((t%3600)/60)).padStart(2,"0"),s=String(t%60).padStart(2,"0"); return `${h}:${m}:${s}`; }
-    function tick(){ const left=msLeft(); document.getElementById("countdown").textContent = hhmmss(left); checkExpired(); }
+    function tick(){ const left=msLeft(); countdownEl.textContent = hhmmss(left); checkExpired(); }
     setInterval(tick, 1000);
 
     /***********************
-     * CTA
+     * CTA con redirección a WhatsApp
      ***********************/
     claimBtn.addEventListener("click", () => {
       if(checkExpired()) return;
-      alert("Cupón reclamado ✅");
+      const randomNum = WHATSAPP_NUMBERS[Math.floor(Math.random() * WHATSAPP_NUMBERS.length)];
+      const mensaje = encodeURIComponent("¡Hola! Quiero reclamar mi cupón de bienvenida 🎁");
+      const url = `https://wa.me/${randomNum}?text=${mensaje}`;
+      window.open(url, "_blank");
     });
 
     /***********************
