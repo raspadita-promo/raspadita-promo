@@ -59,12 +59,8 @@
     }
     .btn:disabled{ background:#a3a3a3; box-shadow:none; cursor:not-allowed; }
     .btn:active{ transform:translateY(1px); }
-    .meta{
-      font-size:13px; color:var(--muted);
-    }
-    details{
-      margin-top:10px; background:#f6f7ff; border-radius:14px; padding:10px 12px;
-    }
+    .meta{ font-size:13px; color:var(--muted); }
+    details{ margin-top:10px; background:#f6f7ff; border-radius:14px; padding:10px 12px; }
     details summary{ cursor:pointer; font-weight:600; }
     .ribbon{
       position:absolute; left:10px; top:10px; padding:6px 10px; font-size:12px; background:#111827; color:#fff; border-radius:999px;
@@ -74,34 +70,24 @@
       display:none; align-items:center; justify-content:center; text-align:center; padding:20px;
     }
     .expiredOverlay.show{ display:flex; }
-    .timer{
-      display:inline-flex; gap:6px; align-items:center; font-feature-settings:"tnum";
-      font-variant-numeric:tabular-nums;
-    }
-    .grid2{
-      display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center;
-    }
+    .timer{ display:inline-flex; gap:6px; align-items:center; font-feature-settings:"tnum"; font-variant-numeric:tabular-nums; }
+    .grid2{ display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
   </style>
 </head>
 <body>
   <div class="wrap" role="main">
     <header>
-      <div class="logo" aria-hidden="true">
-        <!-- Si quieres, reemplaza el src del logo -->
-        <img id="brandLogo" alt="Logo" src="" />
-      </div>
+      <div class="logo"><img src="logo.png" alt="Logo de tu marca"></div>
       <div class="ttl">
         <h1>Raspadita de Bienvenida</h1>
-        <p>Descubre tu cupón exclusivo (neutro, sin temática de juegos).</p>
+        <p>Descubre tu cupón exclusivo</p>
       </div>
     </header>
 
     <div class="card">
       <div class="ribbon">50% EXTRA</div>
-      <div class="badge" id="timeBadge">
-        <span class="timer">⏳ <span id="countdown">—:—:—</span></span>
-      </div>
-      <canvas id="scratch" width="520" height="300" aria-label="Raspadita: arrastra para revelar premio"></canvas>
+      <div class="badge" id="timeBadge"><span class="timer">⏳ <span id="countdown">—:—:—</span></span></div>
+      <canvas id="scratch" width="520" height="300"></canvas>
       <div class="expiredOverlay" id="expired">
         <div>
           <h2 style="margin:0 0 6px">Cupón expirado</h2>
@@ -115,14 +101,7 @@
         <button id="claimBtn" class="btn" disabled>🎁 Reclamar cupón 50% extra</button>
         <div class="meta" id="progressTxt">Raspa para desbloquear (0%)</div>
       </div>
-      <div class="meta">Válido solo por 24 horas desde tu primera visita.</div>
-      <details>
-        <summary>Ver términos</summary>
-        <div class="meta" style="margin-top:8px; text-align:left">
-          Promoción: 50% extra en la primera carga de bienvenida. Válido por 24 horas desde la primera visita a esta página en tu dispositivo.
-          Beneficio no acumulable ni transferible. Sujeto a verificación de cuenta. Nos reservamos el derecho de validar elegibilidad.
-        </div>
-      </details>
+      <div class="meta">⚡ Válido solo por 24 horas desde tu primera visita.</div>
     </div>
   </div>
 
@@ -130,243 +109,95 @@
     /***********************
      * 🔧 CONFIGURACIÓN
      ***********************/
-    const BRAND_NAME = "Tu Marca";              // Nombre público
-    const LOGO_URL = "";                        // Opcional: URL de tu logo (PNG/JPG). Si vacío, se mostrará un ícono por defecto.
-    const VALIDITY_HOURS = 24;                  // Duración del cupón desde la primera visita
-    const SCRATCH_RADIUS = 26;                  // Radio del "raspado"
-    const UNLOCK_THRESHOLD = 0.55;              // 55% revelado para habilitar reclamar
-    const WHATSAPP_NUMBER = "";                 // Incluye código de país. Ej: "54911xxxxxxxx" (sin +)
-    // Mensaje prellenado de WhatsApp al reclamar:
-    const WHATSAPP_MESSAGE = `Hola, quiero reclamar mi cupón de bienvenida 50% EXTRA de ${BRAND_NAME}.`;
+    const VALIDITY_HOURS = 24;        // Duración en horas
+    const SCRATCH_RADIUS = 26;        // Radio de raspado
+    const UNLOCK_THRESHOLD = 0.55;    // 55% revelado
+    const WHATSAPP_NUMBER = "";       // Número con código de país (ej: 54911xxxxxxxx)
+    const WHATSAPP_MESSAGE = "Hola, quiero reclamar mi cupón de bienvenida 50% EXTRA.";
 
-    // Elementos
     const canvas = document.getElementById("scratch");
     const ctx = canvas.getContext("2d");
     const claimBtn = document.getElementById("claimBtn");
     const progressTxt = document.getElementById("progressTxt");
     const countdownEl = document.getElementById("countdown");
     const expiredEl = document.getElementById("expired");
-    const brandLogo = document.getElementById("brandLogo");
-
-    // Logo opcional
-    if (LOGO_URL) {
-      brandLogo.src = LOGO_URL;
-      brandLogo.alt = BRAND_NAME;
-    } else {
-      // Fallback: dibuja un simple monograma si no hay logo
-      brandLogo.remove(); // oculto img
-      const box = document.querySelector(".logo");
-      const span = document.createElement("span");
-      span.textContent = BRAND_NAME.slice(0,1).toUpperCase();
-      span.style.fontWeight = "800";
-      span.style.fontSize = "20px";
-      span.style.color = "#111";
-      box.appendChild(span);
-    }
 
     /***********************
      * 🎨 DIBUJA PREMIO
-     * (no depende de imágenes externas)
      ***********************/
     function drawPrizeBackground() {
       const w = canvas.width, h = canvas.height;
-      // Fondo suave
-      const g = ctx.createLinearGradient(0,0,w,h);
-      g.addColorStop(0,"#ffffff");
-      g.addColorStop(1,"#f0f4ff");
-      ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
-
-      // Tarjeta central
-      const cardPad = 18, r = 22;
-      roundRect(ctx, cardPad, cardPad, w-2*cardPad, h-2*cardPad, r);
-      ctx.fillStyle = "#ffffff"; ctx.fill();
-      ctx.shadowColor = "rgba(0,0,0,.08)"; ctx.shadowBlur = 20; ctx.shadowOffsetY = 6;
-      roundRect(ctx, cardPad, cardPad, w-2*cardPad, h-2*cardPad, r); ctx.strokeStyle = "rgba(0,0,0,.05)"; ctx.stroke();
-      ctx.shadowColor = "transparent";
-
-      // Texto principal
-      ctx.fillStyle = "#111827";
-      ctx.font = "bold 28px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText("Bienvenido/a 🎉", cardPad+24, cardPad+60);
-
-      ctx.font = "600 24px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillStyle = "#16a34a";
-      ctx.fillText("Cupón 50% EXTRA", cardPad+24, cardPad+100);
-
-      ctx.font = "16px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillStyle = "#374151";
-      const line1 = "en tu primera carga de bienvenida";
-      ctx.fillText(line1, cardPad+24, cardPad+130);
-
-      // Etiqueta de validez
-      ctx.font = "14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillStyle = "#6b7280";
-      ctx.fillText("Válido por 24 horas desde tu primera visita", cardPad+24, h - cardPad - 24);
-
-      // Pequeño sello
-      ctx.fillStyle = "#6366f1";
-      roundRect(ctx, w - cardPad - 120, h - cardPad - 48, 110, 34, 10);
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText("Uso único", w - cardPad - 85, h - cardPad - 26);
-    }
-
-    function roundRect(ctx, x, y, w, h, r){
-      const rr = Math.min(r, w/2, h/2);
-      ctx.beginPath();
-      ctx.moveTo(x+rr, y);
-      ctx.arcTo(x+w, y, x+w, y+h, rr);
-      ctx.arcTo(x+w, y+h, x, y+h, rr);
-      ctx.arcTo(x, y+h, x, y, rr);
-      ctx.arcTo(x, y, x+w, y, rr);
-      ctx.closePath();
+      ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+      ctx.fillStyle = "#16a34a"; ctx.font = "bold 28px Arial";
+      ctx.fillText("🎉 Cupón 50% EXTRA", 30, 100);
+      ctx.fillStyle = "#111"; ctx.font = "18px Arial";
+      ctx.fillText("en tu primera carga de bienvenida", 30, 140);
+      ctx.fillStyle = "#6b7280"; ctx.font = "14px Arial";
+      ctx.fillText("Válido por 24 horas desde tu visita", 30, 180);
     }
 
     /***********************
      * 🪄 CAPA RASCABLE
      ***********************/
     function drawScratchLayer(){
-      // Capa metálica
-      const w = canvas.width, h = canvas.height;
-      const g = ctx.createLinearGradient(0,0,w,h);
-      g.addColorStop(0, "#cfd4da");
-      g.addColorStop(1, "#a9b0b7");
-      ctx.fillStyle = g;
+      ctx.fillStyle = "silver";
       ctx.globalCompositeOperation = "source-over";
-      ctx.fillRect(0,0,w,h);
-
-      // Textura de líneas finas
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = "rgba(255,255,255,0.3)";
-      for(let i=0;i<w;i+=8){
-        ctx.fillRect(i,0,1,h);
-      }
-      ctx.globalAlpha = 1;
-
-      // Mensaje encima
-      ctx.fillStyle = "rgba(17,24,39,.9)";
-      ctx.font = "bold 20px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("Raspa para revelar tu cupón", w/2, 40);
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = "#222"; ctx.font = "20px Arial"; ctx.textAlign = "center";
+      ctx.fillText("Raspa para descubrir tu premio", canvas.width/2, 40);
       ctx.textAlign = "left";
     }
 
-    // Estados de interacción
-    let isDown = false;
-    let lastPoint = null;
-    let revealed = false;
+    let isDown = false, lastPoint = null, revealed = false;
 
     function scratchAt(clientX, clientY){
       const rect = canvas.getBoundingClientRect();
       const x = (clientX - rect.left) * (canvas.width / rect.width);
       const y = (clientY - rect.top) * (canvas.height / rect.height);
       ctx.globalCompositeOperation = "destination-out";
-      ctx.beginPath();
-      ctx.arc(x, y, SCRATCH_RADIUS, 0, Math.PI*2);
-      ctx.fill();
-      if(lastPoint){
-        // Unión suave de puntos para no dejar gaps
-        const dx = x - lastPoint.x, dy = y - lastPoint.y;
-        const dist = Math.hypot(dx, dy);
-        const steps = Math.ceil(dist / (SCRATCH_RADIUS/2));
-        for(let i=1;i<steps;i++){
-          const ix = lastPoint.x + dx * (i/steps);
-          const iy = lastPoint.y + dy * (i/steps);
-          ctx.beginPath(); ctx.arc(ix, iy, SCRATCH_RADIUS, 0, Math.PI*2); ctx.fill();
-        }
-      }
+      ctx.beginPath(); ctx.arc(x, y, SCRATCH_RADIUS, 0, Math.PI*2); ctx.fill();
       lastPoint = {x,y};
     }
 
-    function handlePointerDown(e){
-      if(checkExpired()) return;
-      isDown = true;
-      lastPoint = null;
-    }
-    function handlePointerUp(e){
-      isDown = false;
-      lastPoint = null;
-      // Calcular porcentaje revelado solo al soltar (rendimiento)
-      updateRevealedPercent();
-    }
-    function handlePointerMove(e){
-      if(!isDown || checkExpired()) return;
-      if(e.touches && e.touches[0]){
-        scratchAt(e.touches[0].clientX, e.touches[0].clientY);
-      } else {
-        scratchAt(e.clientX, e.clientY);
-      }
-      e.preventDefault();
-    }
-
-    canvas.addEventListener("mousedown", handlePointerDown);
-    canvas.addEventListener("mousemove", handlePointerMove, {passive:false});
-    window.addEventListener("mouseup", handlePointerUp);
-
-    canvas.addEventListener("touchstart", handlePointerDown, {passive:true});
-    canvas.addEventListener("touchmove", handlePointerMove, {passive:false});
-    window.addEventListener("touchend", handlePointerUp);
-
     function updateRevealedPercent(){
-      try{
-        // Tomamos una muestra de píxeles (no toda la imagen para rendimiento)
-        const sample = ctx.getImageData(0,0,canvas.width,canvas.height).data;
-        let cleared = 0, total = canvas.width*canvas.height;
-        // Contamos alfa=0 (borrado) mirando cada 8vo pixel aprox
-        let step = 8;
-        let sampled = 0;
-        for(let i=3;i<sample.length;i+=4*step){
-          if(sample[i]===0) cleared++;
-          sampled++;
-        }
-        const ratio = cleared / sampled;
-        const percent = Math.round(ratio*100);
-        progressTxt.textContent = revealed
-          ? "Listo para reclamar"
-          : `Raspa para desbloquear (${percent}%)`;
-
-        if(!revealed && ratio >= UNLOCK_THRESHOLD){
-          revealed = true;
-          // Limpia completamente la capa para mostrar el premio bonito
-          ctx.globalCompositeOperation = "destination-out";
-          ctx.fillRect(0,0,canvas.width,canvas.height);
-          claimBtn.disabled = false;
-          progressTxt.textContent = "Listo para reclamar";
-        }
-      }catch(err){
-        // Si falla getImageData por alguna razón, no rompemos la UX
-        console.warn(err);
+      const sample = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+      let cleared = 0, sampled = 0, step = 8;
+      for(let i=3;i<sample.length;i+=4*step){ if(sample[i]===0) cleared++; sampled++; }
+      const ratio = cleared/sampled;
+      const percent = Math.round(ratio*100);
+      progressTxt.textContent = revealed ? "Listo para reclamar" : `Raspa para desbloquear (${percent}%)`;
+      if(!revealed && ratio >= UNLOCK_THRESHOLD){
+        revealed = true;
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        claimBtn.disabled = false;
       }
     }
+
+    canvas.addEventListener("mousedown", e=>{isDown=true});
+    canvas.addEventListener("mouseup", e=>{isDown=false; updateRevealedPercent()});
+    canvas.addEventListener("mousemove", e=>{if(isDown) scratchAt(e.clientX,e.clientY)});
+    canvas.addEventListener("touchstart", e=>{isDown=true});
+    canvas.addEventListener("touchend", e=>{isDown=false; updateRevealedPercent()});
+    canvas.addEventListener("touchmove", e=>{if(isDown && e.touches[0]) scratchAt(e.touches[0].clientX,e.touches[0].clientY)});
 
     /***********************
-     * ⏳ LÓGICA DE EXPIRACIÓN
+     * ⏳ TIEMPO DE EXPIRACIÓN
      ***********************/
-    const STORAGE_KEY = "scratch_welcome_started_at";
+    const STORAGE_KEY = "raspadita_inicio";
     function getStartMs(){
       const v = localStorage.getItem(STORAGE_KEY);
       return v ? parseInt(v,10) : null;
     }
     function startNowIfNeeded(){
       let start = getStartMs();
-      if(!start){
-        start = Date.now();
-        localStorage.setItem(STORAGE_KEY, String(start));
-      }
+      if(!start){ start = Date.now(); localStorage.setItem(STORAGE_KEY, start); }
       return start;
     }
     function msLeft(){
       const start = startNowIfNeeded();
       const end = start + VALIDITY_HOURS*60*60*1000;
       return end - Date.now();
-    }
-    function checkExpired(){
-      const left = msLeft();
-      const expired = left <= 0;
-      expiredEl.classList.toggle("show", expired);
-      claimBtn.disabled = expired || !revealed;
-      return expired;
     }
     function formatHHMMSS(ms){
       if(ms<=0) return "00:00:00";
@@ -379,40 +210,30 @@
     function tick(){
       const left = msLeft();
       countdownEl.textContent = formatHHMMSS(left);
-      checkExpired();
+      if(left<=0){ expiredEl.classList.add("show"); claimBtn.disabled = true; }
     }
     setInterval(tick, 1000);
 
     /***********************
-     * 📲 RECLAMO
+     * 📲 RECLAMAR
      ***********************/
     claimBtn.addEventListener("click", () => {
-      if(checkExpired()) return;
-      // Puedes cambiar aquí la acción de “reclamar”
-      // Opción 1: WhatsApp
       if(WHATSAPP_NUMBER){
         const msg = encodeURIComponent(WHATSAPP_MESSAGE);
-        const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
-        window.location.href = url;
+        window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
       } else {
-        // Opción 2: Copiar mensaje al portapapeles y mostrar alerta
-        const msg = `${WHATSAPP_MESSAGE}`;
-        navigator.clipboard?.writeText(msg);
-        alert("¡Listo! Mensaje para enviar copiado al portapapeles.");
+        alert("Configura tu número de WhatsApp en el código (WHATSAPP_NUMBER).");
       }
     });
 
     /***********************
-     * 🚀 INICIALIZACIÓN
+     * 🚀 INIT
      ***********************/
     function init(){
-      // Dibuja premio y capa rascable
       drawPrizeBackground();
       drawScratchLayer();
-      // Arranca contador
       tick();
     }
-    // Para asegurar que canvas tenga layout correcto antes de dibujar
     window.addEventListener("load", init);
   </script>
 </body>
