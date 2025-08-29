@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Raspadita Promo 🎉</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #ff6f61, #ffcc70);
+      font-family: Arial, sans-serif;
+    }
+    #scratchCanvas {
+      border-radius: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    .mensaje {
+      position: absolute;
+      top: 20px;
+      text-align: center;
+      width: 100%;
+      font-size: 24px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="mensaje">🎯 ¡Raspa y descubre tu premio!</div>
+  <canvas id="scratchCanvas" width="350" height="250"></canvas>
+
+  <script>
+    const canvas = document.getElementById("scratchCanvas");
+    const ctx = canvas.getContext("2d");
+    
+    // Imagen del premio (cámbiala por tu promo, logo o QR)
+    const prize = new Image();
+    prize.src = "https://via.placeholder.com/350x250.png?text=🎁+50%25+OFF"; 
+    prize.onload = () => {
+      ctx.drawImage(prize, 0, 0, canvas.width, canvas.height);
+
+      // Capa gris metálica
+      ctx.fillStyle = "silver";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+
+    let isDrawing = false;
+
+    function scratch(e) {
+      if (!isDrawing) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+      const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath();
+      ctx.arc(x, y, 25, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    canvas.addEventListener("mousedown", () => isDrawing = true);
+    canvas.addEventListener("mouseup", () => isDrawing = false);
+    canvas.addEventListener("mousemove", scratch);
+
+    canvas.addEventListener("touchstart", () => isDrawing = true);
+    canvas.addEventListener("touchend", () => isDrawing = false);
+    canvas.addEventListener("touchmove", scratch);
+  </script>
+</body>
+</html>
