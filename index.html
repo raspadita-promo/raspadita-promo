@@ -82,9 +82,9 @@
     const ctx = canvas.getContext("2d");
     const claimBtn = document.getElementById("claimBtn");
 
-    // 👉 Imagen del premio (modificar si quieres un diseño propio)
+    // 👉 Imagen del premio (ya usará tu archivo local premio.png)
     const prize = new Image();
-    prize.src = "https://via.placeholder.com/350x250.png?text=🎉+50%25+Extra+en+tu+1era+Carga";
+    prize.src = "premio.png";
     prize.onload = () => {
       ctx.drawImage(prize, 0, 0, canvas.width, canvas.height);
 
@@ -128,12 +128,12 @@
 
     // 👉 Lista de números de WhatsApp
     const WHATSAPP_NUMBERS = [
-      "5491111111111",
-      "5491222222222",
-      "5491333333333",
-      "5491444444444",
-      "5491555555555",
-      "5491666666666",
+      "5491131173310",
+      "5491131173484",
+      "5491131173032",
+      "5491131173532",
+      "5491131173034",
+      "5491131173049",
       "5491777777777",
       "5491888888888"
     ];
