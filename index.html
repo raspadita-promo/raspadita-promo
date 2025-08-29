@@ -43,12 +43,33 @@
     .card{
       position:relative; border-radius:var(--radius);
       overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,.12);
+      /* altura consistente en todas las pantallas */
+      aspect-ratio: 26 / 15; /* ~520x300 */
+      background:#fff;
     }
-    canvas{ display:block; width:100%; height:auto; cursor:pointer; }
+    .coupon-img{
+      position:absolute; inset:0;
+      width:100%; height:100%; object-fit:cover; display:block;
+    }
+    .scratch{
+      position:absolute; inset:0;
+      width:100%; height:100%; display:block; cursor:pointer;
+    }
     .badge{
       position:absolute; top:10px; right:10px; background:var(--accent); color:#fff;
       padding:6px 10px; border-radius:999px; font-size:12px; box-shadow:0 4px 10px rgba(99,102,241,.4);
+      z-index:3;
     }
+    .ribbon{
+      position:absolute; left:10px; top:10px; padding:6px 10px; font-size:12px; background:#111827; color:#fff; border-radius:999px;
+      z-index:3;
+    }
+    .expiredOverlay{
+      position:absolute; inset:0; background:rgba(17,24,39,.72); color:#fff;
+      display:none; align-items:center; justify-content:center; text-align:center; padding:20px; z-index:4;
+    }
+    .expiredOverlay.show{ display:flex; }
+
     .cta{
       display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:16px; text-align:center;
     }
@@ -59,31 +80,12 @@
     }
     .btn:disabled{ background:#a3a3a3; box-shadow:none; cursor:not-allowed; }
     .btn:active{ transform:translateY(1px); }
-    .meta{
-      font-size:13px; color:var(--muted);
-    }
-    details{
-      margin-top:10px; background:#f6f7ff; border-radius:14px; padding:10px 12px;
-    }
+    .meta{ font-size:13px; color:var(--muted); }
+    details{ margin-top:10px; background:#f6f7ff; border-radius:14px; padding:10px 12px; }
     details summary{ cursor:pointer; font-weight:600; }
-    .ribbon{
-      position:absolute; left:10px; top:10px; padding:6px 10px; font-size:12px; background:#111827; color:#fff; border-radius:999px;
-    }
-    .expiredOverlay{
-      position:absolute; inset:0; background:rgba(17,24,39,.72); color:#fff;
-      display:none; align-items:center; justify-content:center; text-align:center; padding:20px;
-    }
-    .expiredOverlay.show{ display:flex; }
-    .timer{
-      display:inline-flex; gap:6px; align-items:center; font-feature-settings:"tnum";
-      font-variant-numeric:tabular-nums;
-    }
-    .grid2{
-      display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center;
-    }
-    .extra-lines{
-      margin-top:12px; text-align:left; font-size:13px; color:var(--muted);
-    }
+
+    .grid2{ display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
+    .extra-lines{ margin-top:12px; text-align:left; font-size:13px; color:var(--muted); }
     .extra-lines p{ margin:4px 0; }
   </style>
 </head>
@@ -91,7 +93,7 @@
   <div class="wrap" role="main">
     <header>
       <div class="logo">
-        <img id="brandLogo" alt="Logo" src="logo.png" />
+        <img id="brandLogo" alt="Logo" src="./logo.png" />
       </div>
       <div class="ttl">
         <h1>Raspadita de Bienvenida</h1>
@@ -104,7 +106,13 @@
       <div class="badge" id="timeBadge">
         <span class="timer">⏳ <span id="countdown">—:—:—</span></span>
       </div>
-      <canvas id="scratch" width="520" height="300"></canvas>
+
+      <!-- Fondo del premio como imagen real -->
+      <img id="couponImg" class="coupon-img" src="./cupon.png" alt="Cupón" loading="eager" />
+
+      <!-- Capa rascable encima -->
+      <canvas id="scratch" class="scratch" aria-label="Raspadita: arrastra para revelar premio"></canvas>
+
       <div class="expiredOverlay" id="expired">
         <div>
           <h2 style="margin:0 0 6px">Cupón expirado</h2>
@@ -128,7 +136,7 @@
       </details>
     </div>
 
-    <!-- Ocho líneas adicionales debajo -->
+    <!-- 8 líneas editables -->
     <div class="extra-lines">
       <p>1. Beneficio exclusivo para nuevos usuarios.</p>
       <p>2. No acumulable con otras promociones.</p>
@@ -142,6 +150,9 @@
   </div>
 
   <script>
+    /***********************
+     * CONFIG
+     ***********************/
     const BRAND_NAME = "Tu Marca";
     const VALIDITY_HOURS = 24;
     const SCRATCH_RADIUS = 26;
@@ -153,31 +164,45 @@
     const progressTxt = document.getElementById("progressTxt");
     const countdownEl = document.getElementById("countdown");
     const expiredEl = document.getElementById("expired");
+    const prizeImg = document.getElementById("couponImg");
 
-    let isDown = false;
-    let lastPoint = null;
-    let revealed = false;
+    let isDown = false, lastPoint = null, revealed = false;
 
-    // Dibuja la imagen del cupón
-    function drawPrizeBackground() {
-      const img = new Image();
-      img.src = "cupon.png";
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
+    /***********************
+     * LAYOUT NÍTIDO (HiDPI)
+     ***********************/
+    function sizeCanvas(){
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width  = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // dibujar en unidades CSS
     }
 
+    /***********************
+     * CAPA RASCABLE (sólo en el canvas superior)
+     ***********************/
     function drawScratchLayer(){
-      const w = canvas.width, h = canvas.height;
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width, h = rect.height;
+
+      // fondo metálico
       const g = ctx.createLinearGradient(0,0,w,h);
       g.addColorStop(0, "#cfd4da");
       g.addColorStop(1, "#a9b0b7");
-      ctx.fillStyle = g;
       ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = g;
       ctx.fillRect(0,0,w,h);
 
+      // líneas finas
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = "rgba(255,255,255,0.3)";
+      for(let i=0;i<w;i+=8){ ctx.fillRect(i,0,1,h); }
+      ctx.globalAlpha = 1;
+
+      // texto
       ctx.fillStyle = "rgba(17,24,39,.9)";
-      ctx.font = "bold 20px system-ui, Arial";
+      ctx.font = "bold 20px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.textAlign = "center";
       ctx.fillText("Raspa para revelar tu cupón", w/2, 40);
       ctx.textAlign = "left";
@@ -185,8 +210,8 @@
 
     function scratchAt(clientX, clientY){
       const rect = canvas.getBoundingClientRect();
-      const x = (clientX - rect.left) * (canvas.width / rect.width);
-      const y = (clientY - rect.top) * (canvas.height / rect.height);
+      const x = (clientX - rect.left);
+      const y = (clientY - rect.top);
       ctx.globalCompositeOperation = "destination-out";
       ctx.beginPath();
       ctx.arc(x, y, SCRATCH_RADIUS, 0, Math.PI*2);
@@ -196,8 +221,8 @@
         const dist = Math.hypot(dx, dy);
         const steps = Math.ceil(dist / (SCRATCH_RADIUS/2));
         for(let i=1;i<steps;i++){
-          const ix = lastPoint.x + dx * (i/steps);
-          const iy = lastPoint.y + dy * (i/steps);
+          const ix = lastPoint.x + dx*(i/steps);
+          const iy = lastPoint.y + dy*(i/steps);
           ctx.beginPath(); ctx.arc(ix, iy, SCRATCH_RADIUS, 0, Math.PI*2); ctx.fill();
         }
       }
@@ -206,10 +231,10 @@
 
     function updateRevealedPercent(){
       try{
-        const sample = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+        const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
         let cleared = 0, sampled = 0;
-        for(let i=3;i<sample.length;i+=32){
-          if(sample[i]===0) cleared++;
+        for(let i=3;i<data.length;i+=32){
+          if(data[i]===0) cleared++;
           sampled++;
         }
         const ratio = cleared / sampled;
@@ -222,18 +247,15 @@
           claimBtn.disabled = false;
           progressTxt.textContent = "Listo para reclamar";
         }
-      }catch(err){}
+      }catch(e){ /* no rompemos la UX */ }
     }
 
     function handlePointerDown(){ if(!checkExpired()){ isDown = true; lastPoint = null; } }
     function handlePointerUp(){ isDown = false; lastPoint = null; updateRevealedPercent(); }
     function handlePointerMove(e){
       if(!isDown || checkExpired()) return;
-      if(e.touches && e.touches[0]){
-        scratchAt(e.touches[0].clientX, e.touches[0].clientY);
-      } else {
-        scratchAt(e.clientX, e.clientY);
-      }
+      const t = e.touches && e.touches[0];
+      scratchAt(t ? t.clientX : e.clientX, t ? t.clientY : e.clientY);
       e.preventDefault();
     }
 
@@ -244,20 +266,36 @@
     canvas.addEventListener("touchmove", handlePointerMove, {passive:false});
     window.addEventListener("touchend", handlePointerUp);
 
-    // Expiración
+    /***********************
+     * EXPIRACIÓN
+     ***********************/
     const STORAGE_KEY = "scratch_welcome_started_at";
     function getStartMs(){ const v = localStorage.getItem(STORAGE_KEY); return v ? parseInt(v,10) : null; }
-    function startNowIfNeeded(){ let start = getStartMs(); if(!start){ start = Date.now(); localStorage.setItem(STORAGE_KEY, String(start)); } return start; }
-    function msLeft(){ const start = startNowIfNeeded(); const end = start + VALIDITY_HOURS*60*60*1000; return end - Date.now(); }
+    function startNowIfNeeded(){ let s = getStartMs(); if(!s){ s = Date.now(); localStorage.setItem(STORAGE_KEY, String(s)); } return s; }
+    function msLeft(){ const end = startNowIfNeeded() + VALIDITY_HOURS*60*60*1000; return end - Date.now(); }
     function checkExpired(){ const expired = msLeft()<=0; expiredEl.classList.toggle("show", expired); claimBtn.disabled = expired || !revealed; return expired; }
-    function formatHHMMSS(ms){ if(ms<=0) return "00:00:00"; const t = Math.floor(ms/1000); const h = String(Math.floor(t/3600)).padStart(2,"0"); const m = String(Math.floor((t%3600)/60)).padStart(2,"0"); const s = String(t%60).padStart(2,"0"); return `${h}:${m}:${s}`; }
-    function tick(){ countdownEl.textContent = formatHHMMSS(msLeft()); checkExpired(); }
+    function hhmmss(ms){ if(ms<=0) return "00:00:00"; const t=Math.floor(ms/1000),h=String(Math.floor(t/3600)).padStart(2,"0"),m=String(Math.floor((t%3600)/60)).padStart(2,"0"),s=String(t%60).padStart(2,"0"); return `${h}:${m}:${s}`; }
+    function tick(){ const left=msLeft(); document.getElementById("countdown").textContent = hhmmss(left); checkExpired(); }
     setInterval(tick, 1000);
 
-    claimBtn.addEventListener("click", () => { alert("Cupón reclamado ✅"); });
+    /***********************
+     * CTA
+     ***********************/
+    claimBtn.addEventListener("click", () => {
+      if(checkExpired()) return;
+      alert("Cupón reclamado ✅");
+    });
 
-    function init(){ drawPrizeBackground(); drawScratchLayer(); tick(); }
+    /***********************
+     * INIT
+     ***********************/
+    function init(){
+      sizeCanvas();
+      drawScratchLayer();
+      tick();
+    }
     window.addEventListener("load", init);
+    window.addEventListener("resize", () => { sizeCanvas(); drawScratchLayer(); });
   </script>
 </body>
 </html>
